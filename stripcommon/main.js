@@ -19,7 +19,7 @@ define([
         var text = clipboardData.getData('text/plain');
 
         var lines = text.split('\n')
-        var prefixes = lines.map(s => /^\s*/.exec(s)[0]);
+        var prefixes = lines.filter(s => !/^\s*$/.test(s)).map(s => /^\s*/.exec(s)[0]);
         var common = Math.min(...prefixes.map(arr => arr.length))
         var stripped = lines.map(s => s.slice(common)).join('\n') 
 
