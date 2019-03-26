@@ -1,16 +1,68 @@
-// file my_extension/main.js
+// The outline for this code is largely lifted from [this extension](https://github.com/ipython-contrib/jupyter_contrib_nbextensions/blob/6af8e5e84e4746476c5b476b7e38f63d7abb2064/src/jupyter_contrib_nbextensions/nbextensions/runtools/main.js)
+// while the paste-replacement stuff is from [this post](https://stackoverflow.com/questions/2176861/javascript-get-clipboard-data-on-paste-event-cross-browser).
 
 define([
-    'base/js/namespace',
     'jquery',
-    'require',
-    'base/js/events',
+    'base/js/namespace',
     'base/js/utils',
-], function(Jupyter, $, requirejs, events, configmod, utils) {
+    'base/js/events',
+    'notebook/js/codecell'
+], function($, Jupyter, utils, events, codecell) {
     "use strict";
 
-    function load_extension(){
-        console.info('this is my first extension');
+    function notebookOnlyEvent(callback) {
+        // Only call the callback to redirect the event if the notebook should be
+        // handling the events, at the descretion of the keyboard manager.
+        // If the focus is in a text widget or something (kbmanager disabled),
+        // allow the default event.
+        // 
+        // Nicked from Jupyter's `clipboard.js` 
+        return function() {
+            if (Jupyter.keyboard_manager.enabled) {
+                callback.apply(this, arguments);
+            }
+        };
+    }
+
+    function paste(cm, e) {
+        if (Jupyter.notebook.mode !== 'edit') {
+            return
+        }
+        console.log('Stripping pasted text of common leading whitespace')
+
+        var clipboardData = e.clipboardData || window.clipboardData;
+        var text = clipboardData.getData('text/plain');
+
+        var lines = text.split('\n')
+        var prefixes = lines.map(s => /^\s*/.exec(s)[0]);
+        var common = Math.min(...prefixes.map(arr => arr.length))
+        var stripped = lines.map(s => s.slice(common)).join('\n') 
+
+        e.preventDefault();
+        document.execCommand('insertText', false, stripped);
+    }
+
+    function init() {
+        var cells = Jupyter.notebook.get_cells();
+        for (let cell of cells) {
+            if (cell instanceof codecell.CodeCell) {
+                cell.code_mirror.on('paste', paste)
+            }
+        }
+        events.on('create.Cell', function (event, nbcell) {
+            var cell = nbcell.cell
+            if (cell instanceof codecell.CodeCell) {
+                cell.code_mirror.on('paste', paste)
+            }
+        })
+    }
+
+    function load_extension() {
+        if (Jupyter.notebook._fully_loaded) {
+            init();
+        } else {
+            events.one('notebook_loaded.Notebook', init);
+        }
     }
 
     return {
