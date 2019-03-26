@@ -10,25 +10,10 @@ define([
 ], function($, Jupyter, utils, events, codecell) {
     "use strict";
 
-    function notebookOnlyEvent(callback) {
-        // Only call the callback to redirect the event if the notebook should be
-        // handling the events, at the descretion of the keyboard manager.
-        // If the focus is in a text widget or something (kbmanager disabled),
-        // allow the default event.
-        // 
-        // Nicked from Jupyter's `clipboard.js` 
-        return function() {
-            if (Jupyter.keyboard_manager.enabled) {
-                callback.apply(this, arguments);
-            }
-        };
-    }
-
     function paste(cm, e) {
         if (Jupyter.notebook.mode !== 'edit') {
             return
         }
-        console.log('Stripping pasted text of common leading whitespace')
 
         var clipboardData = e.clipboardData || window.clipboardData;
         var text = clipboardData.getData('text/plain');
