@@ -24,7 +24,12 @@ define([
         var stripped = lines.map(s => s.slice(common)).join('\n') 
 
         e.preventDefault();
-        document.execCommand('insertText', false, stripped);
+        // insertText in Chrome, paste in Firefox. Ugh.
+        if (document.queryCommandSupported('insertText')) {
+            document.execCommand('insertText', false, stripped);
+        } else {
+            document.execCommand('paste', false, stripped);
+        }
     }
 
     function init() {
